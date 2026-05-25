@@ -1,0 +1,102 @@
+# One-command dev environment for Wekams Lens.
+#
+# Usage:
+#   cp .env.example .env   # then fill in GROQ_API_KEY for dev
+#   docker compose up --build
+#
+# Then open http://localhost:3000
+
+services:
+  # Catalog DB — Wekams Lens's own state.
+  catalog-db:
+    image: postgres:16-alpine
+    container_name: wekams-lens-catalog
+    environment:
+      POSTGRES_USER: wekams
+      POSTGRES_PASSWORD: wekams_dev
+      POSTGRES_DB: wekams_catalog
+    ports:
+      - "5433:5432"           # 5433 host-side to avoid clash with the demo DB
+    volumes:
+      - catalog-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wekams -d wekams_catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Demo source — pretend customer database with seeded e-commerce data.
+  # Not part of the product; just gives dev something real to query against.
+  demo-source:
+    image: postgres:16-alpine
+    container_name: wekams-lens-demo-source
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo_pw
+      POSTGRES_DB: shop
+    ports:
+      - "5434:5432"
+    volumes:
+      - demo-source-data:/var/lib/postgresql/data
+      - ./scripts/demo-seed:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d shop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wekams-lens-backend
+    env_file: .env
+    environment:
+      WEKAMS_HOST: 0.0.0.0
+      WEKAMS_PORT: 8000
+      WEKAMS_CATALOG_DB_URL: postgresql+asyncpg://wekams:wekams_dev@catalog-db:5432/wekams_catalog
+    ports:
+      - "8000:8000"
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wekams-lens-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Local Ollama — uncomment to test the air-gap LLM path.
+  # The Community image will eventually bundle Ollama as a sidecar.
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: wekams-lens-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   restart: unless-stopped
+
+volumes:
+  catalog-data:
+  demo-source-data:
+  # ollama-data:

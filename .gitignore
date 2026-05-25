@@ -1,0 +1,67 @@
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-debug.log*
+.yarn/
+yarn-error.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Wekams runtime state
+backups/
+data/
+*.dump
+*.sql.gz
+license.key
+vault.enc
+
+# LLM model files (large)
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# Test / coverage
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+
+# Docker volumes
+postgres-data/
+duckdb-data/
