@@ -30,6 +30,13 @@ export type ToolResultData = {
   rows: Record<string, unknown>[];
   row_count: number;
   truncated: boolean;
+  // Lineage / trace metadata (added in the trace-panel feature). All optional
+  // so older persisted conversations still render cleanly.
+  sources?: string[];
+  referenced_tables?: string[];
+  validated?: boolean;
+  elapsed_ms?: number;
+  federated?: boolean;
 };
 
 export type ToolResultEvent = {

@@ -13,6 +13,7 @@ them with timeout, row caps, error handling, and audit logging.
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -121,6 +122,7 @@ async def _execute_query_data(
     )
     connector = get_connector(source_type, config=source.config, credentials=creds)
 
+    started_ns = time.perf_counter_ns()
     try:
         result = await connector.execute(sql, max_rows=1000, timeout_seconds=30)
     except ConnectorError as exc:
@@ -131,6 +133,7 @@ async def _execute_query_data(
             ok=False,
             content=f"Query failed: {exc}",
         )
+    elapsed_ms = round((time.perf_counter_ns() - started_ns) / 1_000_000, 1)
 
     # Compact serialization for the LLM. Truncate large rowsets.
     preview_rows = result.rows[:50]
@@ -156,6 +159,12 @@ async def _execute_query_data(
             "rows": json_rows,
             "row_count": result.row_count,
             "truncated": result.truncated,
+            # Lineage / trace metadata the UI renders above the table.
+            "sources": [source_name],
+            "referenced_tables": list(validation.referenced_tables),
+            "validated": True,
+            "elapsed_ms": elapsed_ms,
+            "federated": False,
         },
     )
 
@@ -252,6 +261,7 @@ async def _execute_query_federated(
         )
 
     engine = FederationEngine(sources)
+    started_ns = time.perf_counter_ns()
     try:
         result = await engine.execute(sql, max_rows=1000, timeout_seconds=60)
     except ConnectorError as exc:
@@ -262,6 +272,7 @@ async def _execute_query_federated(
             ok=False,
             content=f"Federated query failed: {exc}",
         )
+    elapsed_ms = round((time.perf_counter_ns() - started_ns) / 1_000_000, 1)
 
     preview_rows = result.rows[:50]
     json_rows = [
@@ -286,6 +297,12 @@ async def _execute_query_federated(
             "rows": json_rows,
             "row_count": result.row_count,
             "truncated": result.truncated,
+            # Lineage / trace metadata the UI renders above the table.
+            "sources": list(source_names),
+            "referenced_tables": [],  # cross-source SQL — validation deferred (backlog)
+            "validated": False,
+            "elapsed_ms": elapsed_ms,
+            "federated": True,
         },
     )
 

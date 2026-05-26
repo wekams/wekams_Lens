@@ -448,6 +448,7 @@ function ToolResultView({ result }: { result: ToolResultEvent }) {
 
   return (
     <div className="overflow-hidden rounded-md border border-border bg-panel">
+      <TraceStrip data={data} />
       <div className="flex items-center justify-between border-b border-border px-3 py-1.5 text-xs text-muted">
         <span>
           <span className="text-neutral-200">{data.row_count}</span> row{data.row_count === 1 ? "" : "s"}
@@ -487,4 +488,58 @@ function formatCell(v: unknown): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
+}
+
+/**
+ * Compact lineage strip above the result table: which sources, how long,
+ * federated yes/no, schema-validated yes/no. Renders nothing if the backend
+ * didn't ship trace data (older persisted conversations).
+ */
+function TraceStrip({ data }: { data: ToolResultData }) {
+  const sources = data.sources ?? [];
+  const elapsed = data.elapsed_ms;
+  const validated = data.validated === true;
+  const federated = data.federated === true;
+  const referenced = data.referenced_tables ?? [];
+
+  if (sources.length === 0 && elapsed === undefined && !validated && !federated) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-neutral-900/40 px-3 py-1.5 text-[11px] text-neutral-400">
+      {validated && (
+        <span
+          className="inline-flex items-center gap-1 text-emerald-400"
+          title={referenced.length > 0 ? `Tables: ${referenced.join(", ")}` : "SQL parsed and all referenced tables/columns exist in the catalog"}
+        >
+          <span aria-hidden>✓</span>
+          <span>Schema-validated</span>
+        </span>
+      )}
+
+      {sources.length > 0 && (
+        <span>
+          {federated ? "Federated across" : "Source"}
+          {sources.length === 1 ? ":" : ` ${sources.length} sources:`}{" "}
+          <span className="font-mono text-neutral-200">{sources.join(" + ")}</span>
+        </span>
+      )}
+
+      {!federated && referenced.length > 0 && (
+        <span className="hidden sm:inline">
+          tables: <span className="font-mono text-neutral-300">{referenced.join(", ")}</span>
+        </span>
+      )}
+
+      {elapsed !== undefined && (
+        <span className="ml-auto tabular-nums">{formatElapsed(elapsed)}</span>
+      )}
+    </div>
+  );
+}
+
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return `${ms.toFixed(0)} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
 }
