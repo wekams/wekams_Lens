@@ -95,6 +95,19 @@ if not _EE_DISABLED:
     except ImportError:
         get_logger(__name__).info("ee.audit.not_present", build="community")
 
+# Pro / Enterprise semantic layer (metrics catalog).
+HAS_EE_SEMANTIC = False
+if not _EE_DISABLED:
+    try:
+        import ee.semantic  # noqa: F401  — side-effect import registers provider
+        from ee.semantic.api import router as _ee_semantic_router
+
+        app.include_router(_ee_semantic_router)
+        HAS_EE_SEMANTIC = True
+        get_logger(__name__).info("ee.semantic.loaded")
+    except ImportError:
+        get_logger(__name__).info("ee.semantic.not_present", build="community")
+
 
 @app.get("/")
 async def root() -> dict:

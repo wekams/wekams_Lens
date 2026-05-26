@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.catalog import service
 from app.catalog.models import Source, SourceStatus
 from app.orchestrator.federation import _alias as federation_alias
+from app.orchestrator.semantic_hook import get_metrics_block
 
 
 def _format_table(t, source_alias: str, source_type: str) -> list[str]:  # noqa: ANN001
@@ -129,6 +130,14 @@ async def render_schema_context(session: AsyncSession) -> str:
             "  • String matches are exact: '/checkout' is not 'checkout'. If a literal returns 0 rows, SELECT DISTINCT the column first.",
         ]
     )
+
+    # Pro / Enterprise: append the semantic-layer block if installed.
+    # Empty string in Community — no prompt change.
+    metrics_block = await get_metrics_block(session)
+    if metrics_block:
+        blocks.append("")
+        blocks.append(metrics_block)
+
     return "\n".join(blocks)
 
 

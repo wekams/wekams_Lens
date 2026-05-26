@@ -10,6 +10,7 @@ import LicenseBanner from "@/components/LicenseBanner";
 const NAV: { href: string; label: string }[] = [
   { href: "/", label: "Chat" },
   { href: "/sources", label: "Sources" },
+  { href: "/settings/metrics", label: "Metrics" },
   { href: "/settings/audit", label: "Audit" },
   { href: "/settings/license", label: "License" },
 ];
