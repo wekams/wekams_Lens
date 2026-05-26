@@ -42,11 +42,10 @@ export default function LicenseBanner() {
 
   if (!status.activated) {
     return (
-      <BannerRow tone="warning">
+      <BannerRow tone="danger">
         <span>
-          <strong className="font-medium">Pending activation.</strong> Lens is
-          running the Pro / Enterprise build with no license. Activate to unlock
-          features.
+          <strong className="font-medium">Pending activation — Lens is locked.</strong>{" "}
+          This is the Pro / Enterprise build. Upload your license file to unlock.
         </span>
         <Link href="/settings/license" className="ml-auto underline">
           Activate →
@@ -59,12 +58,12 @@ export default function LicenseBanner() {
     return (
       <BannerRow tone="danger">
         <span>
-          <strong className="font-medium">License expired.</strong>{" "}
-          {status.customer}. Contact{" "}
+          <strong className="font-medium">License expired — Lens is locked.</strong>{" "}
+          {status.customer}. Email{" "}
           <a className="underline" href="mailto:connect@wekams.com">
             connect@wekams.com
           </a>{" "}
-          to renew.
+          for a renewal file.
         </span>
         <Link href="/settings/license" className="ml-auto underline">
           Upload renewal →
@@ -74,12 +73,37 @@ export default function LicenseBanner() {
   }
 
   const days = status.days_remaining;
-  if (days !== null && days <= 14) {
-    const tone = days <= 7 ? "danger" : "warning";
+  if (days !== null && days <= 1) {
     return (
-      <BannerRow tone={tone}>
+      <BannerRow tone="danger">
+        <span>
+          <strong className="font-medium">License expires in {days <= 0 ? "less than" : ""} 24 hours — read-only mode.</strong>{" "}
+          New queries are blocked until renewal. {status.customer}.
+        </span>
+        <Link href="/settings/license" className="ml-auto underline">
+          Upload renewal →
+        </Link>
+      </BannerRow>
+    );
+  }
+  if (days !== null && days <= 7) {
+    return (
+      <BannerRow tone="danger">
         <span>
           <strong className="font-medium">License expires in {days} day{days === 1 ? "" : "s"}.</strong>{" "}
+          Renew now to avoid lockout. {status.customer} ({status.edition}).
+        </span>
+        <Link href="/settings/license" className="ml-auto underline">
+          View →
+        </Link>
+      </BannerRow>
+    );
+  }
+  if (days !== null && days <= 30) {
+    return (
+      <BannerRow tone="warning">
+        <span>
+          <strong className="font-medium">License expires in {days} days.</strong>{" "}
           {status.customer} ({status.edition}).
         </span>
         <Link href="/settings/license" className="ml-auto underline">

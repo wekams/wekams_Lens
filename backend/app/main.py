@@ -63,10 +63,12 @@ app.include_router(conversations.router)
 HAS_EE_LICENSE = False
 try:
     from ee.license.api import router as _ee_license_router
+    from ee.license.enforcement import install as _install_license_gate
 
     app.include_router(_ee_license_router)
+    _install_license_gate(app)
     HAS_EE_LICENSE = True
-    get_logger(__name__).info("ee.license.loaded")
+    get_logger(__name__).info("ee.license.loaded", enforcement="enabled")
 except ImportError:
     get_logger(__name__).info("ee.license.not_present", build="community")
 
