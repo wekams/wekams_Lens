@@ -14,9 +14,10 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.auth import require_auth
 from app.catalog import service
 from app.catalog.db import SessionLocal, get_session
 from app.catalog.models import Source, SourceType
@@ -26,7 +27,11 @@ from app.core.logging import get_logger
 
 log = get_logger(__name__)
 
-router = APIRouter(prefix="/api/v1/sources", tags=["sources"])
+router = APIRouter(
+    prefix="/api/v1/sources",
+    tags=["sources"],
+    dependencies=[Depends(require_auth)],
+)
 
 
 # ── Schemas ──────────────────────────────────────────────────────────

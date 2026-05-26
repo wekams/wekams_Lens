@@ -23,10 +23,11 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
+from app.auth import require_auth
 from app.catalog import conversations as conv_svc
 from app.catalog.db import get_session
 from app.core.logging import get_logger
@@ -43,7 +44,11 @@ from app.orchestrator.agent import (
 
 log = get_logger(__name__)
 
-router = APIRouter(prefix="/api/v1", tags=["chat"])
+router = APIRouter(
+    prefix="/api/v1",
+    tags=["chat"],
+    dependencies=[Depends(require_auth)],
+)
 
 
 class ChatRequest(BaseModel):

@@ -65,6 +65,17 @@ class Settings(BaseSettings):
         alias="WEKAMS_CATALOG_DB_URL",
     )
 
+    # ── Auth ─────────────────────────────────────────────────────────
+    # Shared Bearer token for the Community single-user mode.
+    # If unset, all API routes are accessible without authentication and a
+    # warning is logged at startup — acceptable for laptop dev, NOT acceptable
+    # for any deployment that listens on a network-reachable interface.
+    auth_token: str | None = Field(default=None, alias="WEKAMS_AUTH_TOKEN")
+
+    @property
+    def auth_enabled(self) -> bool:
+        return bool(self.auth_token)
+
     @property
     def is_air_gap_build(self) -> bool:
         """In air-gap production builds, only local LLM providers are allowed."""

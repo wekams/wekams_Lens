@@ -13,7 +13,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.api import auth as auth_api
 from app.api import chat, conversations, health, sources
+from app.auth import log_startup_auth_state
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 
@@ -28,6 +30,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         env=settings.env.value,
         llm_provider=settings.llm_provider.value,
     )
+    log_startup_auth_state()
     yield
     log.info("wekams.shutdown")
 
@@ -50,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth_api.router)
 app.include_router(chat.router)
 app.include_router(sources.router)
 app.include_router(conversations.router)

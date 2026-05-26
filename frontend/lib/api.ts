@@ -55,7 +55,7 @@ export type StreamEvent =
   | ToolResultEvent
   | ConversationEvent;
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+import { API_BASE, apiFetch } from "./auth";
 
 /**
  * Stream a chat completion from the backend.
@@ -70,7 +70,7 @@ export async function* streamChat(
 ): AsyncGenerator<StreamEvent> {
   const body: Record<string, unknown> = { messages };
   if (options.conversationId) body.conversation_id = options.conversationId;
-  const response = await fetch(`${API_BASE}/api/v1/chat`, {
+  const response = await apiFetch(`${API_BASE}/api/v1/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

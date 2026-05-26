@@ -13,16 +13,21 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel, Field
 
+from app.auth import require_auth
 from app.catalog import conversations as svc
 from app.catalog.db import get_session
 from app.catalog.export_markdown import render_conversation_markdown
 from app.catalog.models import ChatMessage, Conversation
 
-router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
+router = APIRouter(
+    prefix="/api/v1/conversations",
+    tags=["conversations"],
+    dependencies=[Depends(require_auth)],
+)
 
 
 class MessageView(BaseModel):

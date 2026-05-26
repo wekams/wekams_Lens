@@ -33,6 +33,20 @@ docker compose up --build
 Open <http://localhost:3000>, register a source on the Sources page, then ask
 a question in chat.
 
+## Authentication
+
+By default, leaving `WEKAMS_AUTH_TOKEN` blank in `.env` runs the stack with
+**no authentication** — fine for laptop dev. If you expose Lens on any
+network-reachable interface, set a token first:
+
+```bash
+echo "WEKAMS_AUTH_TOKEN=$(openssl rand -hex 32)" >> .env
+```
+
+Restart the backend. The UI will redirect to `/login` and ask for the
+token; once entered it's kept in browser localStorage. The backend uses
+constant-time comparison and logs `auth.enabled` on startup.
+
 ## Running fully offline (Ollama)
 
 The dev default is Groq for speed. To run the offline path:

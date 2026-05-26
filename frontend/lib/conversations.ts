@@ -2,7 +2,7 @@
 
 import type { ToolResultData } from "./api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+import { API_BASE, apiFetch } from "./auth";
 
 export type StoredMessage = {
   id: string;
@@ -54,19 +54,19 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
 
 export async function listConversations(): Promise<ConversationListItem[]> {
   return jsonOrThrow<ConversationListItem[]>(
-    await fetch(`${API_BASE}/api/v1/conversations`),
+    await apiFetch(`${API_BASE}/api/v1/conversations`),
   );
 }
 
 export async function getConversation(id: string): Promise<ConversationFull> {
   return jsonOrThrow<ConversationFull>(
-    await fetch(`${API_BASE}/api/v1/conversations/${id}`),
+    await apiFetch(`${API_BASE}/api/v1/conversations/${id}`),
   );
 }
 
 export async function createConversation(title?: string): Promise<ConversationFull> {
   return jsonOrThrow<ConversationFull>(
-    await fetch(`${API_BASE}/api/v1/conversations`, {
+    await apiFetch(`${API_BASE}/api/v1/conversations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
@@ -75,7 +75,7 @@ export async function createConversation(title?: string): Promise<ConversationFu
 }
 
 export async function deleteConversation(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/conversations/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`${API_BASE}/api/v1/conversations/${id}`, { method: "DELETE" });
   if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
 }
 
@@ -84,7 +84,7 @@ export async function renameConversation(
   title: string,
 ): Promise<ConversationListItem> {
   return jsonOrThrow<ConversationListItem>(
-    await fetch(`${API_BASE}/api/v1/conversations/${id}`, {
+    await apiFetch(`${API_BASE}/api/v1/conversations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
@@ -93,7 +93,7 @@ export async function renameConversation(
 }
 
 export async function fetchConversationMarkdown(id: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/v1/conversations/${id}/export.md`);
+  const res = await apiFetch(`${API_BASE}/api/v1/conversations/${id}/export.md`);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
