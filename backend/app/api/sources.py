@@ -17,6 +17,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.audit import emit as audit_emit
 from app.auth import require_auth
 from app.catalog import service
 from app.catalog.db import SessionLocal, get_session
@@ -181,6 +182,11 @@ async def create_source_endpoint(
     except ValueError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
 
+    await audit_emit(
+        "source.created",
+        source_name=req.name,
+        source_type=req.type,
+    )
     # Kick off introspection after the response goes out.
     background.add_task(_sync_in_background, view.id)
     return view
@@ -198,9 +204,13 @@ async def get_source_endpoint(source_id: uuid.UUID) -> SourceView:
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_source_endpoint(source_id: uuid.UUID) -> None:
     async with get_session() as session:
+        # Capture name before deletion for the audit record.
+        existing = await service.get_source(session, source_id)
+        name = existing.name if existing else str(source_id)
         ok = await service.delete_source(session, source_id)
         if not ok:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "source not found")
+    await audit_emit("source.deleted", source_name=name, source_id=str(source_id))
 
 
 @router.post("/{source_id}/sync", response_model=SourceView)
@@ -212,7 +222,13 @@ async def sync_source_endpoint(source_id: uuid.UUID) -> SourceView:
             source = await service.sync_schema(session, source_id)
         except ValueError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-        return SourceView.from_model(source, include_tables=True)
+        view = SourceView.from_model(source, include_tables=True)
+    await audit_emit(
+        "source.synced",
+        source_name=source.name,
+        table_count=len(view.tables) if view.tables else 0,
+    )
+    return view
 
 
 @router.post("/test")

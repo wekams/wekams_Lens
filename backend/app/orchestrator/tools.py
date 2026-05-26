@@ -19,6 +19,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit import emit as audit_emit
 from app.catalog import service, vault
 from app.connectors import ConnectorError, get_connector
 from app.core.logging import get_logger
@@ -177,6 +178,17 @@ async def _execute_query_data(
         + (" (truncated by 1000-row cap)" if result.truncated else "")
         + ".\n"
         + json.dumps({"columns": result.columns, "rows": json_rows}, default=str)
+    )
+
+    await audit_emit(
+        "chat.query",
+        outcome="ok",
+        source_name=source_name,
+        sql=sql,
+        row_count=result.row_count,
+        estimated_rows=estimated_rows,
+        elapsed_ms=elapsed_ms,
+        referenced_tables=list(validation.referenced_tables),
     )
 
     return ToolResult(

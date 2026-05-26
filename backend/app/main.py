@@ -72,6 +72,20 @@ try:
 except ImportError:
     get_logger(__name__).info("ee.license.not_present", build="community")
 
+# Pro / Enterprise audit log — same pattern. Importing ee.audit registers
+# the subscriber that persists events; without it, `app.audit.emit` is a
+# no-op and the audit_events table simply stays empty.
+HAS_EE_AUDIT = False
+try:
+    import ee.audit  # noqa: F401  — side-effect import registers subscriber
+    from ee.audit.api import router as _ee_audit_router
+
+    app.include_router(_ee_audit_router)
+    HAS_EE_AUDIT = True
+    get_logger(__name__).info("ee.audit.loaded")
+except ImportError:
+    get_logger(__name__).info("ee.audit.not_present", build="community")
+
 
 @app.get("/")
 async def root() -> dict:
