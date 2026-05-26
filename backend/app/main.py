@@ -6,11 +6,16 @@ Run locally:
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Test / Community-only override: skip the optional ee.* imports even
+# when they happen to be on PYTHONPATH. Set by backend/tests/conftest.py.
+_EE_DISABLED = os.environ.get("WEKAMS_DISABLE_EE") == "1"
 
 from app import __version__
 from app.api import auth as auth_api
@@ -61,30 +66,34 @@ app.include_router(conversations.router)
 # Pro / Enterprise license activation — only present when the ee/ directory
 # is included in the build (i.e. NOT in the Community OSS image).
 HAS_EE_LICENSE = False
-try:
-    from ee.license.api import router as _ee_license_router
-    from ee.license.enforcement import install as _install_license_gate
+if _EE_DISABLED:
+    get_logger(__name__).info("ee.license.skipped", reason="WEKAMS_DISABLE_EE=1")
+else:
+    try:
+        from ee.license.api import router as _ee_license_router
+        from ee.license.enforcement import install as _install_license_gate
 
-    app.include_router(_ee_license_router)
-    _install_license_gate(app)
-    HAS_EE_LICENSE = True
-    get_logger(__name__).info("ee.license.loaded", enforcement="enabled")
-except ImportError:
-    get_logger(__name__).info("ee.license.not_present", build="community")
+        app.include_router(_ee_license_router)
+        _install_license_gate(app)
+        HAS_EE_LICENSE = True
+        get_logger(__name__).info("ee.license.loaded", enforcement="enabled")
+    except ImportError:
+        get_logger(__name__).info("ee.license.not_present", build="community")
 
 # Pro / Enterprise audit log — same pattern. Importing ee.audit registers
 # the subscriber that persists events; without it, `app.audit.emit` is a
 # no-op and the audit_events table simply stays empty.
 HAS_EE_AUDIT = False
-try:
-    import ee.audit  # noqa: F401  — side-effect import registers subscriber
-    from ee.audit.api import router as _ee_audit_router
+if not _EE_DISABLED:
+    try:
+        import ee.audit  # noqa: F401  — side-effect import registers subscriber
+        from ee.audit.api import router as _ee_audit_router
 
-    app.include_router(_ee_audit_router)
-    HAS_EE_AUDIT = True
-    get_logger(__name__).info("ee.audit.loaded")
-except ImportError:
-    get_logger(__name__).info("ee.audit.not_present", build="community")
+        app.include_router(_ee_audit_router)
+        HAS_EE_AUDIT = True
+        get_logger(__name__).info("ee.audit.loaded")
+    except ImportError:
+        get_logger(__name__).info("ee.audit.not_present", build="community")
 
 
 @app.get("/")

@@ -49,4 +49,7 @@ select = ["E", "F", "I", "B", "UP", "N", "RUF"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+# Community tests live under backend/tests. Pro/Enterprise tests live in
+# the (private-only) ee/tests directory at the repo root, picked up by
+# pytest when run from there with PYTHONPATH=.. set.
+testpaths = ["tests", "../ee/tests"]

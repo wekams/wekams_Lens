@@ -17,6 +17,11 @@ import pytest
 # env vars are missing. Set safe defaults BEFORE app code runs.
 os.environ.setdefault("WEKAMS_CATALOG_DB_URL", "postgresql+asyncpg://test:test@localhost:65535/test")
 os.environ.setdefault("GROQ_API_KEY", "test-key")
+# Community-suite tests must NOT load the optional ee/ modules — they'd
+# try to query the (deliberately fake) catalog DB on every protected
+# route and crash these tests with connection errors. The ee/ modules
+# have their own dedicated tests in ee/tests/.
+os.environ.setdefault("WEKAMS_DISABLE_EE", "1")
 
 
 @pytest.fixture
