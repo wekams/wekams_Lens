@@ -79,6 +79,18 @@ wekams_Lens/
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the design and
 [WRITING_CONNECTORS.md](./WRITING_CONNECTORS.md) to ship your own connector.
 
+## Running the tests
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest tests/
+```
+
+The suite covers auth, connector contracts, the credential vault, and an
+end-to-end exercise of the SQLite reference connector. No Postgres needed.
+
 ## License
 
 Apache 2.0 — see [LICENSE](./LICENSE).
