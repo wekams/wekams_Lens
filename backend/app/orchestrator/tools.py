@@ -23,6 +23,10 @@ from app.connectors import ConnectorError, get_connector
 from app.core.logging import get_logger
 from app.llm import ToolCall, ToolDefinition, ToolParameter
 from app.orchestrator.federation import FederationEngine, _alias as federation_alias
+from app.orchestrator.sql_validator import (
+    build_catalog_from_orm_tables,
+    validate_sql,
+)
 
 log = get_logger(__name__)
 
@@ -84,17 +88,37 @@ async def _execute_query_data(
 ) -> ToolResult:
     log.info("tool.query_data.invoked", source=source_name, sql=sql)
 
-    source = await service.get_source_by_name(session, source_name)
+    source = await service.get_source_by_name_with_schema(session, source_name)
     if source is None:
         msg = f"Unknown source {source_name!r}. List available sources first."
         return ToolResult(name=QUERY_DATA.name, arguments={"source": source_name, "sql": sql}, ok=False, content=msg)
+
+    source_type = source.type.value if hasattr(source.type, "value") else str(source.type)
+
+    # Schema-aware pre-flight check. Catches LLM hallucinations (missing
+    # tables / columns / parse errors) before round-tripping to the source.
+    # The error message is designed to be surfaced back to the LLM so the
+    # next turn corrects itself in the existing tool-use loop.
+    catalog = build_catalog_from_orm_tables(source.tables, source_type=source_type)
+    validation = validate_sql(sql, catalog)
+    if not validation.ok:
+        log.info(
+            "tool.query_data.validation_failed",
+            source=source_name,
+            errors=[e.kind for e in validation.errors],
+        )
+        return ToolResult(
+            name=QUERY_DATA.name,
+            arguments={"source": source_name, "sql": sql},
+            ok=False,
+            content=validation.summary_for_llm(),
+        )
 
     creds = (
         json.loads(vault.decrypt(source.credentials_enc))
         if source.credentials_enc
         else {}
     )
-    source_type = source.type.value if hasattr(source.type, "value") else str(source.type)
     connector = get_connector(source_type, config=source.config, credentials=creds)
 
     try:

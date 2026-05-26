@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.catalog import vault
 from app.catalog.models import Column, Source, SourceStatus, Table
@@ -51,6 +52,21 @@ async def get_source(session: AsyncSession, source_id: uuid.UUID) -> Source | No
 
 async def get_source_by_name(session: AsyncSession, name: str) -> Source | None:
     return await session.scalar(select(Source).where(Source.name == name))
+
+
+async def get_source_by_name_with_schema(
+    session: AsyncSession, name: str
+) -> Source | None:
+    """Same as get_source_by_name but eagerly loads tables + columns.
+
+    Used by SQL validation, which needs the full schema to check that
+    referenced tables / columns actually exist.
+    """
+    return await session.scalar(
+        select(Source)
+        .where(Source.name == name)
+        .options(selectinload(Source.tables).selectinload(Table.columns))
+    )
 
 
 async def test_connection(source_type: str, body: dict) -> bool:
