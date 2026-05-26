@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wekams-lens.fullname" . }}-config
+  labels:
+    {{- include "wekams-lens.labels" . | nindent 4 }}
+data:
+  WEKAMS_ENV: production
+  WEKAMS_LOG_LEVEL: INFO
+  WEKAMS_HOST: "0.0.0.0"
+  WEKAMS_PORT: {{ .Values.backend.port | quote }}
+  WEKAMS_LLM_PROVIDER: {{ .Values.llm.provider | quote }}
+  {{- if eq .Values.llm.provider "ollama" }}
+  OLLAMA_HOST: {{ .Values.llm.ollamaHost | quote }}
+  WEKAMS_LLM_MODEL_OLLAMA: {{ .Values.llm.ollamaModel | quote }}
+  {{- end }}
+  {{- if eq .Values.llm.provider "groq" }}
+  WEKAMS_LLM_MODEL_GROQ: {{ .Values.llm.groqModel | quote }}
+  {{- end }}

@@ -1,0 +1,42 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Wekams Lens {{ .Chart.AppVersion }} — release "{{ .Release.Name }}" deployed.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Edition          : {{ .Values.edition }}
+LLM provider     : {{ .Values.llm.provider }}
+Catalog Postgres : {{ .Values.postgres.mode }}
+Ingress          : {{ if .Values.ingress.enabled }}{{ .Values.ingress.host }}{{ else }}(none — port-forward to access){{ end }}
+
+To reach the UI:
+
+{{- if .Values.ingress.enabled }}
+
+  Open:
+    {{ if .Values.ingress.tls.enabled }}https{{ else }}http{{ end }}://{{ .Values.ingress.host }}
+
+{{- else }}
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "wekams-lens.fullname" . }}-frontend {{ .Values.frontend.port }}:{{ .Values.frontend.port }}
+
+  Then open:
+    http://localhost:{{ .Values.frontend.port }}
+
+{{- end }}
+
+{{- if not .Values.auth.token }}
+
+⚠ WARNING: auth.token is empty — the API is OPEN. Set it before going to
+   production:
+     helm upgrade {{ .Release.Name }} . --reuse-values --set auth.token=$(openssl rand -hex 32)
+
+{{- end }}
+
+{{- if and (ne .Values.edition "community") (not .Values.license.file) }}
+
+⚠ WARNING: edition={{ .Values.edition }} but license.file is empty.
+   Pro / Enterprise features will be locked until you upload a license
+   via Settings → License, or pass --set license.file="$(cat /path/to/license.key)".
+
+{{- end }}
+
+See https://github.com/wekams/wekams_Lens for docs.

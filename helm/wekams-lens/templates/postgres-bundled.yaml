@@ -1,0 +1,91 @@
+{{- /*
+Bundled Postgres for the catalog DB. Used only when postgres.mode=bundled.
+For production, switch to mode=external and point at your managed Postgres.
+*/ -}}
+{{- if eq .Values.postgres.mode "bundled" -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wekams-lens.fullname" . }}-postgres
+  labels:
+    {{- include "wekams-lens.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.postgres.bundled.storage }}
+  {{- if .Values.postgres.bundled.storageClass }}
+  storageClassName: {{ .Values.postgres.bundled.storageClass | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wekams-lens.fullname" . }}-postgres
+  labels:
+    {{- include "wekams-lens.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "wekams-lens.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wekams-lens.fullname" . }}-postgres
+  labels:
+    {{- include "wekams-lens.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "wekams-lens.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "wekams-lens.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.bundled.image | quote }}
+          env:
+            - name: POSTGRES_DB
+              value: wekams_catalog
+            - name: POSTGRES_USER
+              value: wekams
+            - name: POSTGRES_PASSWORD
+              value: wekams
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "wekams-lens.fullname" . }}-postgres
+{{- end }}

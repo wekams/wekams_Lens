@@ -1,0 +1,21 @@
+apiVersion: v2
+name: wekams-lens
+description: Wekams Lens — self-hosted natural-language data agent. Talks to your databases, data lake, and logs in plain English, with a local LLM for full air-gap deployments.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://wekams.com/lens/
+sources:
+  - https://github.com/wekams/wekams_Lens
+maintainers:
+  - name: Wekams
+    email: connect@wekams.com
+keywords:
+  - data
+  - analytics
+  - natural-language
+  - llm
+  - duckdb
+  - federation
+  - air-gap
+  - self-hosted

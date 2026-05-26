@@ -1,0 +1,131 @@
+# Wekams Lens — Helm values
+#
+# Copy this file and override what you need. Most customers only change:
+#   - image.tag (which Lens version)
+#   - image.repository (Community vs Pro)
+#   - auth.token (the Bearer token your team uses)
+#   - postgres.* (point at your managed catalog DB OR bundled one)
+#   - ingress.host (the domain you'll visit)
+#   - license.file (Pro / Enterprise builds — paste the .lic contents)
+
+# ── Edition / image ──────────────────────────────────────────────────
+#
+# Community Edition: defaults below — pulls from the public GHCR image
+# (or whichever registry you mirror it into).
+# Pro / Enterprise: replace `repository` with the customer-specific image
+# tag you received from Wekams. Same chart, different image.
+image:
+  repository: ghcr.io/wekams/lens
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+  # When pulling a private Pro / Enterprise image you'll need an
+  # imagePullSecrets reference. Set this to a Secret you created with
+  # `kubectl create secret docker-registry wekams-pull ...`.
+  pullSecrets: []
+  # Example:
+  # pullSecrets:
+  #   - name: wekams-pull
+
+# Build kind. "community" = no license required. "pro" / "enterprise"
+# require the license.file value below.
+edition: community
+
+# ── Authentication ───────────────────────────────────────────────────
+auth:
+  # If empty, Lens runs without a Bearer-token gate (LAPTOP DEV ONLY).
+  # Generate a strong value:  openssl rand -hex 32
+  token: ""
+
+# ── License (Pro / Enterprise only) ──────────────────────────────────
+license:
+  # Paste the wekams.lic.v1.<payload>.<sig> string from your license file.
+  # Leave empty for Community.
+  file: ""
+
+# ── LLM ──────────────────────────────────────────────────────────────
+llm:
+  # "ollama" for offline / air-gap, "groq" for fast cloud dev.
+  provider: ollama
+  # When provider=ollama, point at your in-cluster or external Ollama:
+  ollamaHost: "http://ollama:11434"
+  ollamaModel: "qwen2.5:7b-instruct"
+  # When provider=groq, paste your key (free tier at console.groq.com):
+  groqApiKey: ""
+  groqModel: "qwen/qwen3-32b"
+
+# ── Catalog Postgres ─────────────────────────────────────────────────
+postgres:
+  # "external" (recommended for production) or "bundled" (StatefulSet
+  # included with this chart — fine for trials, NOT for production).
+  mode: external
+  # Used when mode=external — set to whatever your managed Postgres is.
+  url: "postgresql+asyncpg://wekams:CHANGE_ME@postgres.example.internal:5432/wekams_catalog"
+
+  # Used when mode=bundled
+  bundled:
+    image: postgres:16-alpine
+    storage: 10Gi
+    storageClass: ""  # leave empty to use cluster default
+
+# ── Backend / Frontend pods ──────────────────────────────────────────
+backend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  # Where the backend listens. The frontend container talks to it via
+  # the in-cluster Service name (wekams-lens-backend.default.svc...).
+  port: 8000
+
+frontend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  port: 3000
+  # Public base URL the browser hits. Should match your Ingress host.
+  apiBase: "https://lens.example.com"
+
+# ── Ingress ──────────────────────────────────────────────────────────
+# Default: no ingress, Service only. Set enabled=true + host to expose.
+ingress:
+  enabled: false
+  className: nginx
+  host: lens.example.com
+  tls:
+    enabled: true
+    secretName: wekams-lens-tls
+  annotations: {}
+
+# ── Service account / RBAC (cluster-side, not Pro RBAC) ──────────────
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# ── Pod-level security ───────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # backend writes temp DuckDB files
+
+# ── Common labels ────────────────────────────────────────────────────
+commonLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
