@@ -58,6 +58,18 @@ app.include_router(chat.router)
 app.include_router(sources.router)
 app.include_router(conversations.router)
 
+# Pro / Enterprise license activation — only present when the ee/ directory
+# is included in the build (i.e. NOT in the Community OSS image).
+HAS_EE_LICENSE = False
+try:
+    from ee.license.api import router as _ee_license_router
+
+    app.include_router(_ee_license_router)
+    HAS_EE_LICENSE = True
+    get_logger(__name__).info("ee.license.loaded")
+except ImportError:
+    get_logger(__name__).info("ee.license.not_present", build="community")
+
 
 @app.get("/")
 async def root() -> dict:

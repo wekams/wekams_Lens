@@ -5,10 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { clearStoredToken, getAuthStatus, getStoredToken, verifyToken } from "@/lib/auth";
+import LicenseBanner from "@/components/LicenseBanner";
 
 const NAV: { href: string; label: string }[] = [
   { href: "/", label: "Chat" },
   { href: "/sources", label: "Sources" },
+  { href: "/settings/license", label: "License" },
 ];
 
 type AuthState = "checking" | "ok" | "redirecting";
@@ -70,6 +72,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col">
+      <LicenseBanner />
       <header className="border-b border-border bg-bg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-baseline gap-3">
