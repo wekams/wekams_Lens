@@ -26,6 +26,7 @@ BUILTIN_TYPES = {
     "gcs",
     "logs",
     "elasticsearch",
+    "excel",
 }
 
 # The reference SQLite plugin auto-loads from connectors/external/.

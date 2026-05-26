@@ -28,6 +28,7 @@ from pathlib import Path
 from app.connectors.azure_blob import AzureBlobConnector
 from app.connectors.base import Connector, ConnectorError
 from app.connectors.elasticsearch import ElasticsearchConnector
+from app.connectors.excel import ExcelConnector
 from app.connectors.gcs import GcsConnector
 from app.connectors.logs import LogsConnector
 from app.connectors.postgres import PostgresConnector
@@ -44,6 +45,7 @@ _REGISTRY: dict[str, type[Connector]] = {
     GcsConnector.type: GcsConnector,
     LogsConnector.type: LogsConnector,
     ElasticsearchConnector.type: ElasticsearchConnector,
+    ExcelConnector.type: ExcelConnector,
 }
 
 _LOADED = False
