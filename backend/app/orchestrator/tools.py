@@ -29,6 +29,12 @@ from app.orchestrator.sql_validator import (
     validate_sql,
 )
 
+# Optional ee/ module — Pro / Enterprise builds get a row-count gate.
+try:
+    from ee.cost_limits import check as _check_cost
+except ImportError:
+    _check_cost = None  # Community build: no gate.
+
 log = get_logger(__name__)
 
 
@@ -122,6 +128,30 @@ async def _execute_query_data(
     )
     connector = get_connector(source_type, config=source.config, credentials=creds)
 
+    # Best-effort row estimate. Surfaced in the trace strip. In Pro / Enterprise
+    # builds, _check_cost may reject the query before we touch the source.
+    try:
+        estimated_rows = await connector.estimate_rows(sql)
+    except Exception as exc:  # any connector bug must not block legit queries
+        log.warning("tool.query_data.estimate_failed", source=source_name, error=str(exc))
+        estimated_rows = None
+
+    if _check_cost is not None:
+        decision = _check_cost(estimated_rows)
+        if not decision.allowed:
+            log.info(
+                "tool.query_data.cost_blocked",
+                source=source_name,
+                estimate=decision.estimate,
+                limit=decision.limit,
+            )
+            return ToolResult(
+                name=QUERY_DATA.name,
+                arguments={"source": source_name, "sql": sql},
+                ok=False,
+                content=decision.reason,
+            )
+
     started_ns = time.perf_counter_ns()
     try:
         result = await connector.execute(sql, max_rows=1000, timeout_seconds=30)
@@ -165,6 +195,7 @@ async def _execute_query_data(
             "validated": True,
             "elapsed_ms": elapsed_ms,
             "federated": False,
+            "estimated_rows": estimated_rows,
         },
     )
 

@@ -137,6 +137,30 @@ class PostgresConnector(Connector):
         finally:
             await conn.close()
 
+    async def estimate_rows(self, sql: str) -> int | None:
+        """Run `EXPLAIN (FORMAT JSON) <sql>` and pull the planner's estimate.
+
+        Very cheap (no execution). Returns None on parse / planner errors so
+        the caller can fall through to executing the query.
+        """
+        if _WRITE_STATEMENTS.search(sql):
+            return None
+        conn = await self._connect()
+        try:
+            row = await conn.fetchval(f"EXPLAIN (FORMAT JSON) {sql}")
+        except asyncpg.PostgresError:
+            return None
+        finally:
+            await conn.close()
+        try:
+            import json as _json
+
+            plan = _json.loads(row) if isinstance(row, str) else row
+            rows = plan[0]["Plan"]["Plan Rows"]
+            return int(rows)
+        except (KeyError, IndexError, TypeError, ValueError):
+            return None
+
     async def execute(
         self,
         sql: str,

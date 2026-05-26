@@ -532,11 +532,24 @@ function TraceStrip({ data }: { data: ToolResultData }) {
         </span>
       )}
 
+      {data.estimated_rows !== undefined && data.estimated_rows !== null && (
+        <span className="hidden md:inline">
+          est: <span className="tabular-nums text-neutral-300">{formatRows(data.estimated_rows)}</span>
+        </span>
+      )}
+
       {elapsed !== undefined && (
         <span className="ml-auto tabular-nums">{formatElapsed(elapsed)}</span>
       )}
     </div>
   );
+}
+
+function formatRows(n: number): string {
+  if (n < 1_000) return `${n}`;
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  return `${(n / 1_000_000_000).toFixed(2)}B`;
 }
 
 function formatElapsed(ms: number): string {

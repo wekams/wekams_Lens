@@ -95,6 +95,17 @@ class Connector(ABC):
         """Run a read-only query. Implementations enforce row cap and timeout
         on the source side wherever possible (e.g., Postgres `statement_timeout`)."""
 
+    async def estimate_rows(self, sql: str) -> int | None:
+        """Estimate how many rows `sql` will produce, without running it.
+
+        Returns None if the connector cannot estimate (default for sources
+        like S3 / Elasticsearch where there's no cheap EXPLAIN). The
+        orchestrator uses this to surface a cost preview in the trace, and
+        (in Pro / Enterprise builds) to block obviously-runaway queries
+        before they hit the source.
+        """
+        return None
+
     async def close(self) -> None:
         """Tear down any open connections. Default no-op for stateless connectors."""
         return None

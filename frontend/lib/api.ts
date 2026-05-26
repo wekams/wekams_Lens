@@ -37,6 +37,7 @@ export type ToolResultData = {
   validated?: boolean;
   elapsed_ms?: number;
   federated?: boolean;
+  estimated_rows?: number | null;
 };
 
 export type ToolResultEvent = {
